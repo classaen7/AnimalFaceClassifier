@@ -2,17 +2,29 @@ import cv2
 import numpy as np
 from PIL import Image
 import os
+import dlib
+import math
 
-
-# 눈에 대한 기울기 찾기
-def eye_grad(eye_list):
-    eye1_x, eye1_y, eye1_w, eye1_h = eye_list[0]
-    eye2_x, eye2_y, eye2_w, eye2_h = eye_list[1]
+# # 눈에 대한 기울기 찾기
+# def eye_grad(eye_list):
+#     eye1_x, eye1_y, eye1_w, eye1_h = eye_list[0]
+#     eye2_x, eye2_y, eye2_w, eye2_h = eye_list[1]
     
-    eye1_xmean, eye1_ymean = (eye1_x*2 + eye1_w)/2 , (eye1_y*2 + eye1_h)/2
-    eye2_xmean, eye2_ymean = (eye2_x*2 + eye2_w)/2 , (eye2_y*2 + eye2_h)/2
+#     eye1_xmean, eye1_ymean = (eye1_x*2 + eye1_w)/2 , (eye1_y*2 + eye1_h)/2
+#     eye2_xmean, eye2_ymean = (eye2_x*2 + eye2_w)/2 , (eye2_y*2 + eye2_h)/2
 
-    return (int(eye1_xmean), int(eye1_ymean), int(eye2_xmean), int(eye2_ymean))
+#     return (int(eye1_xmean), int(eye1_ymean), int(eye2_xmean), int(eye2_ymean))
+
+
+def eye_degree(left_eye, right_eye):
+    x1, y1 = left_eye[0], left_eye[1]
+    x2, y2 = right_eye[0], right_eye[1]
+    
+    radian = math.atan2(abs(y2-y1),x2-x1)
+    degree = (radian*180)/math.pi
+    
+    return degree
+
 
 # image preprocessing
 """
@@ -30,36 +42,97 @@ def eye_grad(eye_list):
     
 """
 
-cc_loc = "/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_frontalface_alt2.xml"
-cc = cv2.CascadeClassifier(cc_loc)
+# cc_loc = "/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_frontalface_alt2.xml"
+# cc = cv2.CascadeClassifier(cc_loc)
 
 
-eye_cc = cv2.CascadeClassifier("/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_eye.xml")
+# eye_cc = cv2.CascadeClassifier("/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_eye.xml")
 
-file_name = "1"
-img_loc = "/Users/choisihyun/Downloads/g9bJuVaboD4Rvdh4WGLmyeXzlU77UrtaHEraElSZitHR4aI7YCzrRIDSUxJke4LeZSSNY3FuXycUZ8Ou1vB1nw.webp"
+
+#img_loc = "/Users/choisihyun/Downloads/g9bJuVaboD4Rvdh4WGLmyeXzlU77UrtaHEraElSZitHR4aI7YCzrRIDSUxJke4LeZSSNY3FuXycUZ8Ou1vB1nw.webp"
+img_loc = "/Users/choisihyun/Downloads/test4.jpeg"
 image = cv2.imread(img_loc)
 
+# 얼굴 검출기 및 랜드마크 검출기 생성
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor('/Users/choisihyun/dlproject/AnimalFaceClassifier/dlib_face_detect/shape_predictor_68_face_landmarks.dat')
+
+# 이미지에서 얼굴 검출
+faces = detector(image)
+
+print(faces)
+
+# 검출된 얼굴에 대한 랜드마크 예측
+for face in faces:
+    landmarks = predictor(image, face)
+    print(landmarks)
+    # landmarks 변수는 예측된 랜드마크 좌표를 포함합니다.
+
+# 검출된 얼굴에 대해 랜드마크 예측
+for face in faces:
+    landmarks = predictor(image, face)
+    
+    # 예측된 랜드마크 출력
+    for n in range(0, 68):
+        if n==39:
+            x1 = landmarks.part(n).x
+            y1 = landmarks.part(n).y
+        if n==42:
+            x2 = landmarks.part(n).x
+            y2 = landmarks.part(n).y
+            cv2.line(image, (x1,y1),(x2,y2),(255,0,120),2)
+            print(eye_degree((x1,y1),(x2,y2)))
+            dg = eye_degree((x1,y1),(x2,y2))
+                
+        x = landmarks.part(n).x
+        y = landmarks.part(n).y
+        cv2.circle(image, (x, y), 2, (0, 0, 255), 2)
 
 
+#얼굴
 
-face = cc.detectMultiScale(image)
-eye = eye_cc.detectMultiScale(image,minNeighbors=7)
-#만약 찾은게 2개가 딱 되면 눈 기울기 찾아서 이미지 회전시키기 (얼굴 탐지 사각형도)
-x1,y1,x2,y2 = eye_grad(eye)
-x,y,w,h = face[0]
+dets = detector(image, 1)
+print(dets)
+## 이제부터 인식된 얼굴 개수만큼 반복하여 얼굴 윤곽을 표시한다.
+# k: 얼굴 인덱스, d: 얼굴 좌표
+
+for k, d in enumerate(dets): 
+    shape = predictor(image, d) #shape: 얼굴 랜드마크 추출 
+    print(shape.num_parts) #추출된 점은 68개.
+
 
 
 (h, w) = image.shape[:2]
-M = cv2.getRotationMatrix2D((h//2, w//2), 45, 1.0)
-print(M)
-rotated_45 = cv2.warpAffine(image, M, (w, h))
+M = cv2.getRotationMatrix2D((h//2, w//2), 360-dg, 1.0)
+image = cv2.warpAffine(image, M, (w, h))
 
-cv2.rectangle(image, (x, y, w, h), (255, 0, 255), 2)
-cv2.line(image, (x1,y1),(x2,y2),(255,0,255),10)
-cv2.imshow('src', rotated_45)
+cv2.imshow('test_img', image)
 cv2.waitKey()
 cv2.destroyAllWindows()
+
+
+
+
+
+
+# face = cc.detectMultiScale(image)
+# eye = eye_cc.detectMultiScale(image,minNeighbors=7)
+# #만약 찾은게 2개가 딱 되면 눈 기울기 찾아서 이미지 회전시키기 (얼굴 탐지 사각형도)
+# x1,y1,x2,y2 = eye_grad(eye)
+# x,y,w,h = face[0]
+
+
+
+
+# (h, w) = image.shape[:2]
+# M = cv2.getRotationMatrix2D((h//2, w//2), 45, 1.0)
+# rotated_45 = cv2.warpAffine(image, M, (w, h))
+
+# cv2.rectangle(image, (x, y, w, h), (255, 0, 255), 2)
+# cv2.line(image, (x1,y1),(x2,y2),(255,0,255),10)
+# cv2.imshow('src', rotated_45)
+# cv2.waitKey()
+# cv2.destroyAllWindows()
 
 
 # for (x, y, w, h) in eye:
@@ -70,23 +143,23 @@ cv2.destroyAllWindows()
 # print(face)
 
 
-print(eye)
-print(face)
+# print(eye)
+# print(face)
 
-if face.shape == (1,4):
-    print(4)
-    (x, y, w, h) = face[0]
-    print(x,y,w,h)
-image = image[y:y+h,x:x+w]
-image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+# if face.shape == (1,4):
+#     print(4)
+#     (x, y, w, h) = face[0]
+#     print(x,y,w,h)
+# image = image[y:y+h,x:x+w]
+# image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
 
 #조건문 : 아무것도 찾지 못함
 
 #조건문 : 많이 찾음 -> 분류기 이웃개수 재설정
 
-face_img = Image.fromarray(image)
-face_img = face_img.resize((256, 256))
-face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
+# face_img = Image.fromarray(image)
+# face_img = face_img.resize((256, 256))
+# face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
 
 # cv2.imshow('src', image[y:y+h,x:x+w])
 # cv2.waitKey()
