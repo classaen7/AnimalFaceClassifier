@@ -9,7 +9,7 @@ import os
 dir = {
     "강아지" : ["박보영","아이유","강다니엘","송중기"],
     "고양이" : ["강동원", "이준기","한예슬","뉴진스 해린"],
-    "토끼" : ["정국", "박지훈","트와이스 나연","장원영" ],
+    "토끼" : ["정국", "워너원 박지훈","트와이스 나연","장원영" ],
     "공룡" : ["김우빈", "공유","송지효","신민아"],
     "곰" : ["안재홍", "김대명","레드벨벳 슬기","엔믹스 오해원"]     
 }
@@ -34,7 +34,7 @@ for animal in dir:
         driver = webdriver.Chrome(options=options)
         driver.get("https://www.google.co.kr/imghp?hl=ko&ogbl")
         elem = driver.find_element(By.NAME,"q")
-        elem.send_keys(name)
+        elem.send_keys(name+" 얼굴")
         elem.send_keys(Keys.RETURN)
         
         
