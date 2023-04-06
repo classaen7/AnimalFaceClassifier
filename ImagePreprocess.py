@@ -5,171 +5,167 @@ import os
 import dlib
 import math
 
-
-
+# 눈 랜드마크로 기울기 찾기
 def eye_degree(left_eye, right_eye):
-    x1, y1 = left_eye[0], left_eye[1]
-    x2, y2 = right_eye[0], right_eye[1]
+    x1, y1 = left_eye.x, left_eye.y
+    x2, y2 = right_eye.x, right_eye.y
     
     radian = math.atan2(abs(y2-y1),x2-x1)
     degree = (radian*180)/math.pi
     
     return degree
 
-
-
-folder_path = "/Users/choisihyun/Downloads"
-file_list = os.listdir(folder_path)
-file_count = len(file_list)
-print(file_count)
-
-# image preprocessing
-"""
-    os.remove() os.unlink() : 파일 삭제
+# 이미지 회전, 얼굴 추출하는 함수
+# def find_face(image):
     
-    - 파일 개수 확인
-    folder_path = "/Users/choisihyun/Downloads"
-    file_list = os.listdir(folder_path)
-    file_count = len(file_list)
-    print(file_count)
     
-    folder_path = "path/to/folder"
-    file_count = sum([len(files) for r, d, files in os.walk(folder_path)])
-    print(file_count)
-    
-"""
-
-# cc_loc = "/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_frontalface_alt2.xml"
-# cc = cv2.CascadeClassifier(cc_loc)
+#     image = image[:]
+#     return image
 
 
-# eye_cc = cv2.CascadeClassifier("/Users/choisihyun/Downloads/sanhak/opencv/data/haarcascades_cuda/haarcascade_eye.xml")
+dir = {
+    "강아지" : ["박보영","아이유","강다니엘","송중기"],
+    "고양이" : ["강동원", "이준기","한예슬","뉴진스 해린"],
+    "토끼" : ["정국", "박지훈","트와이스 나연","장원영" ],
+    "공룡" : ["김우빈", "공유","송지효","신민아"],
+    "곰" : ["안재홍", "김대명","레드벨벳 슬기","엔믹스 오해원"]     
+}
+
+default_path = defualt_path = 'C:/Users/CHOI/OneDrive/바탕 화면/산학프로젝트 인공지능/데이터 크롤링/'
+predictor_path = '/Users/choisihyun/dlproject/AnimalFaceClassifier/dlib_face_detect/shape_predictor_68_face_landmarks.dat'
 
 
-#img_loc = "/Users/choisihyun/Downloads/g9bJuVaboD4Rvdh4WGLmyeXzlU77UrtaHEraElSZitHR4aI7YCzrRIDSUxJke4LeZSSNY3FuXycUZ8Ou1vB1nw.webp"
-img_loc = "/Users/choisihyun/Downloads/test4.jpeg"
-image = cv2.imread(img_loc)
-
-# 얼굴 검출기 및 랜드마크 검출기 생성
+# 얼굴 검출기 생성
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('/Users/choisihyun/dlproject/AnimalFaceClassifier/dlib_face_detect/shape_predictor_68_face_landmarks.dat')
+# 랜드마크 검출기 생성
+predictor = dlib.shape_predictor(predictor_path)
 
-# 이미지에서 얼굴 검출
+
+img_loc = "/Users/choisihyun/Downloads/202105061428801176_1.jpg"
+image = cv2.imread(img_loc)
+            
+#1. 얼굴 검출
 faces = detector(image)
-
-
-print("faces")
-print(faces)
-
-# 검출된 얼굴에 대한 랜드마크 예측
-for face in faces:
-    landmarks = predictor(image, face)
-    print("landmarks")
-    print(landmarks)
-    # landmarks 변수는 예측된 랜드마크 좌표를 포함합니다.
-
-# 검출된 얼굴에 대해 랜드마크 예측
-for face in faces:
-    landmarks = predictor(image, face)
+if len(faces) == 1:
+    landmarks = predictor(image, faces[0])
     
-    
-    # 예측된 랜드마크 출력
-    for n in range(0, 68):
-        if n==39:
-            x1 = landmarks.part(n).x
-            y1 = landmarks.part(n).y
-        if n==42:
-            x2 = landmarks.part(n).x
-            y2 = landmarks.part(n).y
-            cv2.line(image, (x1,y1),(x2,y2),(255,0,120),2)
-            print(eye_degree((x1,y1),(x2,y2)))
-            dg = eye_degree((x1,y1),(x2,y2))
+    if landmarks.num_parts == 68:
+        #눈의 각도로 이미지 회전
+        degree = eye_degree(landmarks.part(39), landmarks.part(42))
+        
+        if degree != 0: #이미지를 회전 시켜야 하면
+            if  landmarks.part(39).y < landmarks.part(42).y:
+                rot_degree = 360 - degree 
+            else:
+                rot_degree = degree 
+            
+            #이미지 회전하고 다시 얼굴 탐지
+            (h, w) = image.shape[:2]
+            M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
+            image = cv2.warpAffine(image, M, (w, h))
+        
+        
+        #회전을 하거나 안하거나 얼굴만 다시 인식하여 이미지 추출
+        faces = detector(image)
+        
+        #얼굴 하나 찾으면 이미지 그걸로 변환
+        if len(faces) == 1:
+            face = faces[0]
+            image = image[face.top(),face.bottom(),face.left():face.right()]
+            
+            #변환된 이미지 출력
+            cv2.imshow('test_img', image)
+            cv2.waitKey()
+            cv2.destroyAllWindows()
+            
+
+"""
+for animal in dir:
+    for celeb in animal:
+        # animal : 동물, celeb : 연예인 이름
+
+        folder_path = default_path + animal + '/' + celeb
+        file_list = os.listdir(folder_path)
+        
+        for img_name in range(0,len(file_list)):
+            #이미지 불러오기
+            img_loc = folder_path + '/' + file_list[img_name]
+            image = cv2.imread(img_loc)
+            
+            #1. 얼굴 검출
+            faces = detector(image)
+            if len(faces) == 1:
+                landmarks = predictor(image, faces[0])
                 
-        x = landmarks.part(n).x
-        y = landmarks.part(n).y
-        cv2.circle(image, (x, y), 2, (0, 0, 255), 2)
+                if landmarks.num_parts == 68:
+                    #눈의 각도로 이미지 회전
+                    degree = eye_degree(landmarks.part(39), landmarks.part(42))
+                    
+                    if degree != 0: #이미지를 회전 시켜야 하면
+                        if  landmarks.part(39).y < landmarks.part(42).y:
+                            rot_degree = 360 - degree 
+                        else:
+                            rot_degree = degree 
+                     
+                        #이미지 회전하고 다시 얼굴 탐지
+                        (h, w) = image.shape[:2]
+                        M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
+                        image = cv2.warpAffine(image, M, (w, h))
+                    
+                    
+                    #회전을 하거나 안하거나 얼굴만 다시 인식하여 이미지 추출
+                    faces = detector(image)
+                    
+                    #얼굴 하나 찾으면 이미지 그걸로 변환
+                    if len(faces) == 1:
+                        face = faces[0]
+                        image = image[face.top(),face.bottom(),face.left():face.right()]
+                        
+                        #변환된 이미지 출력
+                        cv2.imshow('test_img', image)
+                        cv2.waitKey()
+                        cv2.destroyAllWindows()
+                        
+                        
+                        #이미지 파일 저장                        
+                        face_img = Image.fromarray(image)
+                        #크기조정
+                        face_img = face_img.resize((256, 256))
+                        
+                        #얼굴 정규화같은 추가 전처리 과정 필요할 수도
+                        
+                        
+                        face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
+                        
+
+                else: 
+                    #랜드마크가 정확히 (인덱스를 할 수 있게) 관측하지 못한 경우 -> 그냥 얼굴만 추출
+                    face = faces[0]
+                    image = image[face.top(),face.bottom(),face.left():face.right()]
+                    
+                    
+                    #이미지 파일 저장                        
+                    face_img = Image.fromarray(image)
+                    #크기조정
+                    face_img = face_img.resize((256, 256))
+                    
+                    #얼굴 정규화같은 추가 전처리 과정 필요할 수도
+                    face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
+                    
+                    continue
+                    
+            
+            else:
+                #얼굴이 여러개나 0개 추출이면 그냥 패스
+                continue
+            
+            
+            #2. 검출된 얼굴의 랜드마크 찾기
 
 
-#얼굴
 
-dets = detector(image, 1)
-print(dets)
-## 이제부터 인식된 얼굴 개수만큼 반복하여 얼굴 윤곽을 표시한다.
-# k: 얼굴 인덱스, d: 얼굴 좌표
+"""
 
-for k, d in enumerate(dets): 
-    shape = predictor(image, d) #shape: 얼굴 랜드마크 추출 
-    print(shape.num_parts) #추출된 점은 68개.
-
-
-#사진 회전
-(h, w) = image.shape[:2]
-M = cv2.getRotationMatrix2D((h//2, w//2), 360-dg, 1.0)
-image = cv2.warpAffine(image, M, (w, h))
-
-#사진 추출
-faces = detector(image)
-faces = faces[0]
-print(faces)
-print(faces.left(),faces.top(),faces.right(),faces.bottom())
-
-
-image = image[faces.top():faces.bottom(),faces.left():faces.right()]
-cv2.imshow('test_img', image)
-cv2.waitKey()
-cv2.destroyAllWindows()
-
-
-
-# face = cc.detectMultiScale(image)
-# eye = eye_cc.detectMultiScale(image,minNeighbors=7)
-# #만약 찾은게 2개가 딱 되면 눈 기울기 찾아서 이미지 회전시키기 (얼굴 탐지 사각형도)
-# x1,y1,x2,y2 = eye_grad(eye)
-# x,y,w,h = face[0]
-
-
-
-
-# (h, w) = image.shape[:2]
-# M = cv2.getRotationMatrix2D((h//2, w//2), 45, 1.0)
-# rotated_45 = cv2.warpAffine(image, M, (w, h))
-
-# cv2.rectangle(image, (x, y, w, h), (255, 0, 255), 2)
-# cv2.line(image, (x1,y1),(x2,y2),(255,0,255),10)
-# cv2.imshow('src', rotated_45)
-# cv2.waitKey()
-# cv2.destroyAllWindows()
-
-
-# for (x, y, w, h) in eye:
-#     cv2.rectangle(image, (x, y, w, h), (255, 0, 255), 2)
-#     cv2.imshow('src', image)
-#     cv2.waitKey()
-#     cv2.destroyAllWindows()
-# print(face)
-
-
-# print(eye)
-# print(face)
-
-# if face.shape == (1,4):
-#     print(4)
-#     (x, y, w, h) = face[0]
-#     print(x,y,w,h)
-# image = image[y:y+h,x:x+w]
-# image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-
-#조건문 : 아무것도 찾지 못함
-
-#조건문 : 많이 찾음 -> 분류기 이웃개수 재설정
-
-# face_img = Image.fromarray(image)
-# face_img = face_img.resize((256, 256))
-# face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
-
-# cv2.imshow('src', image[y:y+h,x:x+w])
-# cv2.waitKey()
-# cv2.destroyAllWindows()
 
 
 
@@ -189,52 +185,9 @@ cv2.destroyAllWindows()
 따라서 dlib은 보다 정확한 얼굴 인식을 제공할 가능성이 높습니다. 
 그러나 학습된 모델이 더 복잡하므로 처리 속도는 느릴 수 있습니다. 
 Cascade는 상대적으로 간단하며 빠르게 얼굴을 인식할 수 있지만 정확도는 덜할 수 있습니다.
-
 """
 
-
-
 """
-라이브러리
-
-import cv2
-import numpy as np
-from PIL import Image
-import os
-
-
-함수 
-    눈 기울기 찾기 -> 각도 찾기 ->  이미지 회전
-    사진 전체 기울여주는 함수 
-    
-def eye_grad(eye_list):
-    eye1_x, eye1_y, eye1_w, eye1_h = eye_list[0]
-    eye2_x, eye2_y, eye2_w, eye2_h = eye_list[1]
-    
-    eye1_xmean, eye1_ymean = (eye1_x*2 + eye1_w)/2 , (eye1_y*2 + eye1_h)/2
-    eye2_xmean, eye2_ymean = (eye2_x*2 + eye2_w)/2 , (eye2_y*2 + eye2_h)/2
-
-    return (int(eye1_xmean), int(eye1_ymean), int(eye2_xmean), int(eye2_ymean))
-
-
-def rotate() :
-    ~~~
-
-
-
-분류기 초기 설정
-
-face_cc_loc = ""
-eye_cc_loc = ""
-
-face_cc = cv2.CascadeClassifier(face_cc_loc)
-eye_cc = cv2.CascadeClassifier(eye_cc_loc)
-
-
-celeb_dir = {
-    동물 : [연예인]
-}
-
 
 파일 찾기 -> os 나 keras 통해서 불러오기
 반복문 : 폴더 설정 
