@@ -34,52 +34,11 @@ dir = {
 default_path = defualt_path = 'C:/Users/CHOI/OneDrive/바탕 화면/산학프로젝트 인공지능/데이터 크롤링/'
 predictor_path = '/Users/choisihyun/dlproject/AnimalFaceClassifier/dlib_face_detect/shape_predictor_68_face_landmarks.dat'
 
-
 # 얼굴 검출기 생성
 detector = dlib.get_frontal_face_detector()
 # 랜드마크 검출기 생성
 predictor = dlib.shape_predictor(predictor_path)
 
-
-img_loc = "/Users/choisihyun/Downloads/202105061428801176_1.jpg"
-image = cv2.imread(img_loc)
-            
-#1. 얼굴 검출
-faces = detector(image)
-if len(faces) == 1:
-    landmarks = predictor(image, faces[0])
-    
-    if landmarks.num_parts == 68:
-        #눈의 각도로 이미지 회전
-        degree = eye_degree(landmarks.part(39), landmarks.part(42))
-        
-        if degree != 0: #이미지를 회전 시켜야 하면
-            if  landmarks.part(39).y < landmarks.part(42).y:
-                rot_degree = 360 - degree 
-            else:
-                rot_degree = degree 
-            
-            #이미지 회전하고 다시 얼굴 탐지
-            (h, w) = image.shape[:2]
-            M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
-            image = cv2.warpAffine(image, M, (w, h))
-        
-        
-        #회전을 하거나 안하거나 얼굴만 다시 인식하여 이미지 추출
-        faces = detector(image)
-        
-        #얼굴 하나 찾으면 이미지 그걸로 변환
-        if len(faces) == 1:
-            face = faces[0]
-            image = image[face.top(),face.bottom(),face.left():face.right()]
-            
-            #변환된 이미지 출력
-            cv2.imshow('test_img', image)
-            cv2.waitKey()
-            cv2.destroyAllWindows()
-            
-
-"""
 for animal in dir:
     for celeb in animal:
         # animal : 동물, celeb : 연예인 이름
@@ -102,7 +61,7 @@ for animal in dir:
                     degree = eye_degree(landmarks.part(39), landmarks.part(42))
                     
                     if degree != 0: #이미지를 회전 시켜야 하면
-                        if  landmarks.part(39).y < landmarks.part(42).y:
+                        if  landmarks.part(39).y > landmarks.part(42).y:
                             rot_degree = 360 - degree 
                         else:
                             rot_degree = degree 
@@ -164,7 +123,7 @@ for animal in dir:
 
 
 
-"""
+
 
 
 
@@ -223,4 +182,50 @@ Cascade는 상대적으로 간단하며 빠르게 얼굴을 인식할 수 있지
 
 
 
+"""
+
+"""
+# 얼굴 검출기 생성
+detector = dlib.get_frontal_face_detector()
+# 랜드마크 검출기 생성
+predictor = dlib.shape_predictor(predictor_path)
+
+
+img_loc = "/Users/choisihyun/Downloads/202105061428801176_1.jpg"
+image = cv2.imread(img_loc)
+            
+#1. 얼굴 검출
+faces = detector(image)
+if len(faces) == 1:
+    landmarks = predictor(image, faces[0])
+    
+    if landmarks.num_parts == 68:
+        #눈의 각도로 이미지 회전
+        degree = eye_degree(landmarks.part(39), landmarks.part(42))
+        
+        if degree != 0: #이미지를 회전 시켜야 하면
+            if  landmarks.part(39).y > landmarks.part(42).y:
+                rot_degree = 360 - degree 
+            else:
+                rot_degree = degree 
+            
+            #이미지 회전하고 다시 얼굴 탐지
+            (h, w) = image.shape[:2]
+            M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
+            image = cv2.warpAffine(image, M, (w, h))
+        
+        
+        #회전을 하거나 안하거나 얼굴만 다시 인식하여 이미지 추출
+        faces = detector(image)
+        
+        #얼굴 하나 찾으면 이미지 그걸로 변환
+        if len(faces) == 1:
+            face = faces[0]
+            image = image[face.top():face.bottom(),face.left():face.right()]
+            
+            #변환된 이미지 출력
+            cv2.imshow('test_img', image)
+            cv2.waitKey()
+            cv2.destroyAllWindows()
+            
 """
