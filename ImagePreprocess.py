@@ -5,15 +5,6 @@ import os
 import dlib
 import math
 
-# # 눈에 대한 기울기 찾기
-# def eye_grad(eye_list):
-#     eye1_x, eye1_y, eye1_w, eye1_h = eye_list[0]
-#     eye2_x, eye2_y, eye2_w, eye2_h = eye_list[1]
-    
-#     eye1_xmean, eye1_ymean = (eye1_x*2 + eye1_w)/2 , (eye1_y*2 + eye1_h)/2
-#     eye2_xmean, eye2_ymean = (eye2_x*2 + eye2_w)/2 , (eye2_y*2 + eye2_h)/2
-
-#     return (int(eye1_xmean), int(eye1_ymean), int(eye2_xmean), int(eye2_ymean))
 
 
 def eye_degree(left_eye, right_eye):
@@ -26,12 +17,18 @@ def eye_degree(left_eye, right_eye):
     return degree
 
 
+
+folder_path = "/Users/choisihyun/Downloads"
+file_list = os.listdir(folder_path)
+file_count = len(file_list)
+print(file_count)
+
 # image preprocessing
 """
     os.remove() os.unlink() : 파일 삭제
     
     - 파일 개수 확인
-    folder_path = "path/to/folder"
+    folder_path = "/Users/choisihyun/Downloads"
     file_list = os.listdir(folder_path)
     file_count = len(file_list)
     print(file_count)
@@ -60,17 +57,21 @@ predictor = dlib.shape_predictor('/Users/choisihyun/dlproject/AnimalFaceClassifi
 # 이미지에서 얼굴 검출
 faces = detector(image)
 
+
+print("faces")
 print(faces)
 
 # 검출된 얼굴에 대한 랜드마크 예측
 for face in faces:
     landmarks = predictor(image, face)
+    print("landmarks")
     print(landmarks)
     # landmarks 변수는 예측된 랜드마크 좌표를 포함합니다.
 
 # 검출된 얼굴에 대해 랜드마크 예측
 for face in faces:
     landmarks = predictor(image, face)
+    
     
     # 예측된 랜드마크 출력
     for n in range(0, 68):
@@ -101,17 +102,22 @@ for k, d in enumerate(dets):
     print(shape.num_parts) #추출된 점은 68개.
 
 
-
+#사진 회전
 (h, w) = image.shape[:2]
 M = cv2.getRotationMatrix2D((h//2, w//2), 360-dg, 1.0)
 image = cv2.warpAffine(image, M, (w, h))
 
+#사진 추출
+faces = detector(image)
+faces = faces[0]
+print(faces)
+print(faces.left(),faces.top(),faces.right(),faces.bottom())
+
+
+image = image[faces.top():faces.bottom(),faces.left():faces.right()]
 cv2.imshow('test_img', image)
 cv2.waitKey()
 cv2.destroyAllWindows()
-
-
-
 
 
 
