@@ -15,24 +15,25 @@ def eye_degree(left_eye, right_eye):
     
     return degree
 
-# 이미지 회전, 얼굴 추출하는 함수
-# def find_face(image):
-    
-    
-#     image = image[:]
-#     return image
-
 
 dir = {
-    "강아지" : ["박보영","아이유","강다니엘","송중기"],
-    "고양이" : ["강동원", "이준기","한예슬","뉴진스 해린"],
-    "토끼" : ["정국", "박지훈","트와이스 나연","장원영" ],
-    "공룡" : ["김우빈", "공유","송지효","신민아"],
-    "곰" : ["안재홍", "김대명","레드벨벳 슬기","엔믹스 오해원"]     
+    "dog" : ["parkboyoung","iu","kangda","songjoonggi"],
+    "cat" : ["dongwon", "joonki","hanye","haerin"],
+    "rabbit" : ["jungkook", "parkjihoon","nayeon","wonyoung" ],
+    "dino" : ["kimwoobin", "gongu","songjihyo","mina"],
+    "bear" : ["jaehong", "daemyong","seulgi","ohhaewon"]     
 }
 
-default_path = defualt_path = 'C:/Users/CHOI/OneDrive/바탕 화면/산학프로젝트 인공지능/데이터 크롤링/'
-predictor_path = '/Users/choisihyun/dlproject/AnimalFaceClassifier/dlib_face_detect/shape_predictor_68_face_landmarks.dat'
+test_dir = {
+    "dog" : ["kangda"]
+}
+
+
+predictor_path = 'C:/shape_predictor_68_face_landmarks.dat'
+
+preimg_path = 'C:/celebimg/faceimage/'
+default_path = 'C:/celebimg/'
+
 
 # 얼굴 검출기 생성
 detector = dlib.get_frontal_face_detector()
@@ -40,92 +41,100 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
 
 for animal in dir:
-    for celeb in animal:
-        # animal : 동물, celeb : 연예인 이름
+    pre_animal_path = preimg_path + animal
+    if not os.path.isdir(pre_animal_path):
+            os.mkdir(pre_animal_path)
 
+    for celeb in dir[animal]:
+        pre_celeb_path = pre_animal_path + '/' + celeb
+        if not os.path.isdir(pre_celeb_path):
+            os.mkdir(pre_celeb_path)
+        pre_celeb_path += '/'        
+
+        #폴더의 이미지수를 기준으로 반복문 시행
         folder_path = default_path + animal + '/' + celeb
         file_list = os.listdir(folder_path)
-        
-        for img_name in range(0,len(file_list)):
-            #이미지 불러오기
-            img_loc = folder_path + '/' + file_list[img_name]
-            image = cv2.imread(img_loc)
-            
-            #1. 얼굴 검출
-            faces = detector(image)
-            if len(faces) == 1:
-                landmarks = predictor(image, faces[0])
-                
-                if landmarks.num_parts == 68:
-                    #눈의 각도로 이미지 회전
-                    degree = eye_degree(landmarks.part(39), landmarks.part(42))
-                    
-                    if degree != 0: #이미지를 회전 시켜야 하면
-                        if  landmarks.part(39).y > landmarks.part(42).y:
-                            rot_degree = 360 - degree 
-                        else:
-                            rot_degree = degree 
-                     
-                        #이미지 회전하고 다시 얼굴 탐지
-                        (h, w) = image.shape[:2]
-                        M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
-                        image = cv2.warpAffine(image, M, (w, h))
-                    
-                    
-                    #회전을 하거나 안하거나 얼굴만 다시 인식하여 이미지 추출
-                    faces = detector(image)
-                    
-                    #얼굴 하나 찾으면 이미지 그걸로 변환
-                    if len(faces) == 1:
-                        face = faces[0]
-                        image = image[face.top(),face.bottom(),face.left():face.right()]
-                        
-                        #변환된 이미지 출력
-                        cv2.imshow('test_img', image)
-                        cv2.waitKey()
-                        cv2.destroyAllWindows()
-                        
-                        
-                        #이미지 파일 저장                        
-                        face_img = Image.fromarray(image)
-                        #크기조정
-                        face_img = face_img.resize((256, 256))
-                        
-                        #얼굴 정규화같은 추가 전처리 과정 필요할 수도
-                        
-                        
-                        face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
-                        
+        err_count = 0
+        suc_img = 0
+        count = 0
 
-                else: 
-                    #랜드마크가 정확히 (인덱스를 할 수 있게) 관측하지 못한 경우 -> 그냥 얼굴만 추출
-                    face = faces[0]
-                    image = image[face.top(),face.bottom(),face.left():face.right()]
+        for img_name in range(len(file_list)):
+            try:    
+                #이미지 불러오기
+                img_loc = folder_path + '/' + file_list[img_name]
+                image = cv2.imread(img_loc)
+
+                
+                #1. 얼굴 검출
+                faces = detector(image)
+                if len(faces) == 1:
+                    landmarks = predictor(image, faces[0])
                     
-                    
-                    #이미지 파일 저장                        
-                    face_img = Image.fromarray(image)
-                    #크기조정
-                    face_img = face_img.resize((256, 256))
-                    
-                    #얼굴 정규화같은 추가 전처리 과정 필요할 수도
-                    face_img.save('/Users/choisihyun/Downloads/save_test6','PNG') # save PIL image
-                    
+                    #정확히 완벽한 얼굴 하나 인식
+                    if landmarks.num_parts == 68:
+                        #눈의 각도로 이미지 회전
+                        degree = eye_degree(landmarks.part(39), landmarks.part(42))
+                        
+                        if degree != 0: #이미지를 회전 시켜야 하면
+                            if  landmarks.part(39).y > landmarks.part(42).y:
+                                rot_degree = 360 - degree 
+                            else:
+                                rot_degree = degree 
+                        
+                            #이미지 회전하고 다시 얼굴 탐지
+                            (h, w) = image.shape[:2]
+                            M = cv2.getRotationMatrix2D((h//2, w//2), rot_degree, 1.0)
+                            image = cv2.warpAffine(image, M, (w, h))
+                            
+                        
+                        #얼굴만 다시 인식하여 이미지 추출
+                        faces = detector(image)
+                        
+                        #얼굴 하나 찾으면 이미지 그걸로 변환 (아마도 얼굴 하나)
+                        if len(faces) == 1:
+                            face = faces[0]
+                            image = image[face.top():face.bottom(),face.left():face.right()]
+                            
+                            # #변환된 이미지 출력
+                            # cv2.imshow('test_img', image)
+                            # cv2.waitKey()
+                            # cv2.destroyAllWindows()
+                            
+                            #이미지 파일 저장                        
+                            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                            face_img = Image.fromarray(image)
+                            #크기조정
+                            face_img = face_img.resize((256, 256))
+                            face_img.save(pre_celeb_path+str(count)+'.png','PNG') # save PIL image
+                            suc_img += 1
+                            count += 1
+
+                    else: 
+                        "귀찮으니까 얼굴이 여러개면 패스"
+                        err_count += 1
+                        continue
+                        
+                
+                else:
+                    #얼굴이 여러개나 0개 추출이면 그냥 패스
+                    err_count += 1
                     continue
-                    
-            
-            else:
-                #얼굴이 여러개나 0개 추출이면 그냥 패스
+            except:
+                err_count += 1
                 continue
-            
-            
+  
             #2. 검출된 얼굴의 랜드마크 찾기
 
 
 
 
 
+"""
+수정 -> 이미지 이름 count로 초기화해서 저장할때만 count up 시켜주기
+파일들 다 C로 옮겨서 하기 ㅄ같은 영어이름 
 
+
+"""
 
 
 
